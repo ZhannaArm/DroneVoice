@@ -3,6 +3,10 @@ import pyaudio
 import wave
 import asyncio
 import re
+from good import (
+    arm_drone, disarm_drone, takeoff, rotate_drone, move_forward,
+    altitude_mode, land_drone, set_altitude, connect_to_drone
+)
 
 WAV_AM_TRANSCRIBE_AUDIO_URL = "https://wav.am/transcribe_audio/"
 WAV_AM_AUTH_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXkiOiI0ZGM5NDNjY2IzZWI0YTJiOTQ5OGQ1MWU4NGIyMTJlMSIsInVzZXJuYW1lIjoiU2hlcmxvY2tZYW4iLCJjb25uZWN0aW9uIjoiYXBpIiwiZXhwIjoxNzQ1OTcxMjAwLCJpYXQiOjE3NDExODk0MDl9.HYQKkvO8wRSwpoNMuz4ebYUGxgEZIUbpaVIsRmyUk64"
@@ -15,13 +19,14 @@ CHUNK = 1024
 RECORD_SECONDS = 3
 OUTPUT_FILENAME = "output.wav"
 
+master = connect_to_drone()
+master.set_mode("GUIDED")
+
 COMMANDS = {
-    "վերեւ": lambda: print("Հրաման: Վերև"),
-    "ներքեւ": lambda: print("Հրաման: Ներքև"),
-    "աոաջ": lambda: print("Հրաման: Աոաջ"),
-    "հետ": lambda: print("Հրաման: Դրոնը հետ է թռնում"),
-    "ձախ": lambda: print("Հրաման: Դրոնը ձախ է թռնում"),
-    "աջ": lambda: print("Հրաման: Դրոնը աջ է թռնում"),
+    "սկսել": lambda: arm_drone(master),
+    "պրծնել": lambda: disarm_drone(master),
+    "վայրէջք": lambda: land_drone(master),
+    "ալտ": lambda: altitude_mode(master),
 }
 
 async def transcribe_audio(audio_path):
@@ -63,7 +68,6 @@ def record_audio():
         wf.setframerate(RATE)
         wf.writeframes(b''.join(frames))
 
-    print(f"Audio saved as {OUTPUT_FILENAME}")
 
 async def listen_and_process():
     while True:
@@ -72,22 +76,35 @@ async def listen_and_process():
         text_from_audio = recognized_text.stdout.strip().lower()
         text_from_audio_clean = re.sub(r'[^\w\s]', '', text_from_audio)
 
-        words = [word.strip() for word in text_from_audio_clean.split() if word.strip()]
-
-        detected_command = None
-        for word in words:
-            for command in COMMANDS:
-                if word == command:
-                    detected_command = command
-                    break
-            if detected_command:
+        for command in COMMANDS:
+            if command in text_from_audio_clean:
+                COMMANDS[command]()
                 break
-
-        if detected_command:
-            print(f"Recognized: {detected_command}")
-            COMMANDS[detected_command]()
         else:
-            print("Unknown command. Ignoring.")
+            if "թռնել" in text_from_audio_clean:
+                match = re.search(r'թռնել\s*(\d+)', text_from_audio_clean)
+                if match:
+                    alt = float(match.group(1))
+                    takeoff(master, alt)
+            elif "շրջադարձ" in text_from_audio_clean:
+                match = re.search(r'շրջադարձ\s*(\d+)', text_from_audio_clean)
+                if match:
+                    angle = float(match.group(1))
+                    print("շրջադարձ", angle)
+                    rotate_drone(master, angle)
+            elif "առաջ" in text_from_audio_clean:
+                match = re.search(r'առաջ\s*(\d+)', text_from_audio_clean)
+                if match:
+                    dist = float(match.group(1))
+                    move_forward(master, dist)
+            elif "վերեւ" in text_from_audio_clean or "подъём на" in text_from_audio_clean:
+                match = re.search(r'բարձրությունը\s*(\d+)', text_from_audio_clean)
+                if match:
+                    alt = float(match.group(1))
+                    set_altitude(master, alt)
+            else:
+                print("Unknown command. Ignoring.")
+
 
 if __name__ == "__main__":
     asyncio.run(listen_and_process())
