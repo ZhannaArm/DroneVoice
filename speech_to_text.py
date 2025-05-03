@@ -22,12 +22,33 @@ OUTPUT_FILENAME = "output.wav"
 master = connect_to_drone()
 master.set_mode("GUIDED")
 
+has_armed = False
+has_set_altitude_mode = False
+
 COMMANDS = {
-    "սկսել": lambda: arm_drone(master),
+    "սկսել": lambda: arm_once(),
     "պրծնել": lambda: disarm_drone(master),
     "վայրէջք": lambda: land_drone(master),
-    "ալտ": lambda: altitude_mode(master),
+    "ալտ": lambda: altitude_mode_once(),
 }
+
+def arm_once():
+    global has_armed
+    if not has_armed:
+        arm_drone(master)
+        has_armed = True
+    else:
+        print("Արդեն ակտիվացվել է (armed)։")
+
+
+def altitude_mode_once():
+    global has_set_altitude_mode
+    if not has_set_altitude_mode:
+        altitude_mode(master)
+        has_set_altitude_mode = True
+    else:
+        print("Արդեն միացված է բարձրության ռեժիմը։")
+
 
 async def transcribe_audio(audio_path):
     transcribe_command = [
@@ -38,15 +59,6 @@ async def transcribe_audio(audio_path):
         "-F", f"audio_file=@{audio_path}"
     ]
     return subprocess.run(transcribe_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-
-async def process_audio_transcription(audio_path):
-    transcription_result = await transcribe_audio(audio_path)
-    if transcription_result.returncode != 0:
-        print(f"Error during transcription: {transcription_result.stderr}")
-
-    transcription_data = transcription_result.stdout
-    print(f"Transcription data: {transcription_data}")
 
 
 def record_audio():
@@ -97,13 +109,13 @@ async def listen_and_process():
                 if match:
                     dist = float(match.group(1))
                     move_forward(master, dist)
-            elif "վերեւ" in text_from_audio_clean or "подъём на" in text_from_audio_clean:
+            elif "վերեւ" in text_from_audio_clean:
                 match = re.search(r'բարձրությունը\s*(\d+)', text_from_audio_clean)
                 if match:
                     alt = float(match.group(1))
                     set_altitude(master, alt)
             else:
-                print("Unknown command. Ignoring.")
+                print("Անհայտ հրաման:")
 
 
 if __name__ == "__main__":
