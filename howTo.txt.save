@@ -19,6 +19,12 @@
 
 (drone_venv) 20:31:21 arthur@arthur:~/Desktop/DroneVoice ✓ % % python /home/arthur/Desktop/DroneVoice/src/good.py 
 
+и отдельно в похожем терминале 
+mavproxy.py --master=127.0.0.1:14550 --out=127.0.0.1:14551
+
+
+
+
 
 
 

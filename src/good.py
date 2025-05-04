@@ -70,13 +70,7 @@ def move_forward(master, distance):
     send_body_velocity(master, speed, 0, 0, duration)
 
 def connect_to_drone():
-    print("Запуск MAVProxy...")
-    subprocess.Popen(
-        ["mavproxy.py", "--master=127.0.0.1:14550", "--out=127.0.0.1:14551"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
-    )
-    time.sleep(5)
+   
     print("Подключение к дрону...")
     master = mavutil.mavlink_connection('udp:127.0.0.1:14551')
     master.wait_heartbeat()
@@ -114,7 +108,9 @@ def main():
     while True:
         print("\nВыбери команду:")
         print("arm / disarm / takeoff / rotate / forward / altitude / climb / mode / exit")
-        command = input(">> ").strip().lower()
+        print(">>", end="", flush=True)
+        command = input().strip().lower()
+
 
         if command == "arm":
             arm_drone(master)
@@ -157,4 +153,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
+    
