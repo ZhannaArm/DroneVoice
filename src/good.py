@@ -48,12 +48,17 @@ def land_drone(master):
     )
 
 def altitude_mode(master):
-    print("Режим ALTITUDE: отключение моторов (падение)...")
+    print("Режим ALTITUDE: форсированное разоружение (падение)...")
     master.mav.command_long_send(
-        master.target_system, master.target_component,
+        master.target_system,
+        master.target_component,
         mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
-        0, 0, 0, 0, 0, 0, 0, 0
+        0,
+        0,        # disarm
+        21196,    # force disarm
+        0, 0, 0, 0, 0
     )
+
 
 def rotate_drone(master, angle):
     print(f"Поворот на {angle} градусов...")
@@ -131,9 +136,11 @@ def main():
             move_forward(master, distance)
 
         elif command == "altitude":
+            altitude_mode(master)
             while True:
                 print("СПАСИБО ВАРТАН")
                 time.sleep(1)
+
 
         elif command == "climb":
             target_alt = float(input("Укажи желаемую высоту (м): ").strip())
