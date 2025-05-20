@@ -9,8 +9,8 @@ from good import (
 )
 
 WAV_AM_TRANSCRIBE_AUDIO_URL = "https://wav.am/transcribe_audio/"
-WAV_AM_AUTH_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXkiOiI0ZGM5NDNjY2IzZWI0YTJiOTQ5OGQ1MWU4NGIyMTJlMSIsInVzZXJuYW1lIjoiU2hlcmxvY2tZYW4iLCJjb25uZWN0aW9uIjoiYXBpIiwiZXhwIjoxNzQ1OTcxMjAwLCJpYXQiOjE3NDExODk0MDl9.HYQKkvO8wRSwpoNMuz4ebYUGxgEZIUbpaVIsRmyUk64"
-WAV_PROJECT_ID = "1311"
+WAV_AM_AUTH_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXkiOiI2MzBiNGU5MjM3ZTc0Nzc3ODY2MTA1ZDNhMGZhZDcyMyIsInVzZXJuYW1lIjoiU2hlcmxvY2tZYW4iLCJjb25uZWN0aW9uIjoiYXBpIiwiZXhwIjoxNzU5MTkwNDAwLCJpYXQiOjE3NDczMTgyMDR9.eeqo1ARRSqynKbZxJQ6d79N_PjE_JBR7OcHdB5MdP5c"
+WAV_PROJECT_ID = "3228"
 
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
@@ -22,32 +22,12 @@ OUTPUT_FILENAME = "output.wav"
 master = connect_to_drone()
 master.set_mode("GUIDED")
 
-has_armed = False
-has_set_altitude_mode = False
-
 COMMANDS = {
-    "սկսել": lambda: arm_once(),
+    "սկսել": lambda: arm_drone(master),
     "պրծնել": lambda: disarm_drone(master),
     "վայրէջք": lambda: land_drone(master),
-    "ալտ": lambda: altitude_mode_once(),
+    "վարդան": lambda: altitude_mode(master),
 }
-
-def arm_once():
-    global has_armed
-    if not has_armed:
-        arm_drone(master)
-        has_armed = True
-    else:
-        print("Արդեն ակտիվացվել է (armed)։")
-
-
-def altitude_mode_once():
-    global has_set_altitude_mode
-    if not has_set_altitude_mode:
-        altitude_mode(master)
-        has_set_altitude_mode = True
-    else:
-        print("Արդեն միացված է բարձրության ռեժիմը։")
 
 
 async def transcribe_audio(audio_path):
@@ -110,10 +90,15 @@ async def listen_and_process():
                     dist = float(match.group(1))
                     move_forward(master, dist)
             elif "վերեւ" in text_from_audio_clean:
-                match = re.search(r'բարձրությունը\s*(\d+)', text_from_audio_clean)
+                match = re.search(r'վերեւ\s*(\d+)', text_from_audio_clean)
                 if match:
                     alt = float(match.group(1))
                     set_altitude(master, alt)
+            elif "ռեժիմ" in text_from_audio_clean:
+                    if "նստել" in text_from_audio_clean:
+                        master.set_mode("LAND")
+                    elif "դրսից" in text_from_audio_clean:
+                        master.set_mode("GUIDED")
             else:
                 print("Անհայտ հրաման:")
 
